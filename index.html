@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบโปรเจคอัปโหลดรูปภาพ</title>
+  <script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Prompt', sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      padding: 20px;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      color: #e0e6f0;
+    }
+
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      padding: 24px;
+      overflow-y: auto;
+      margin-right: 24px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .main {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 24px;
+      padding: 40px;
+      overflow-y: auto;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    h2,
+    h3 {
+      margin-top: 0;
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: 1.2px;
+      color: #f0f4ff;
+      text-shadow: 0 0 8px rgba(0, 100, 255, 0.7);
+    }
+
+    .actions {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: linear-gradient(135deg, #2a6aff, #00d4ff);
+      color: white;
+      padding: 12px 26px;
+      border: none;
+      border-radius: 16px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
+      transition: all 0.3s ease;
+      user-select: none;
+      filter: drop-shadow(0 0 4px #00d4ff);
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, #1c46b9, #00b8e6);
+      box-shadow: 0 10px 28px rgba(0, 184, 230, 0.9);
+      transform: translateY(-2px);
+    }
+
+    input[type="text"] {
+      padding: 12px 16px;
+      width: 100%;
+      border-radius: 16px;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 14px;
+      font-size: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #e6f0ff;
+      box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.1);
+      transition: border-color 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 12px #00d4ff;
+    }
+
+    .sidebar button {
+      margin-bottom: 18px;
+      /* ยกห่างจากรายการโปรเจคด้านล่าง */
+    }
+
+    #projectList {
+      margin-top: 0;
+      /* กันไว้เผื่อมีค่าจากที่อื่น */
+    }
+
+
+    .project-item {
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: normal;
+      word-break: break-word;
+      transition: background 0.25s ease, transform 0.15s ease;
+      color: #d0e4ff;
+      user-select: none;
+      box-shadow: 0 0 8px rgba(0, 150, 255, 0.3);
+    }
+
+    .project-item:hover {
+      background: rgba(0, 212, 255, 0.15);
+      transform: translateX(6px);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 26px;
+    }
+
+    .image-block {
+      position: relative;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 18px;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0, 100, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .image-block:hover {
+      box-shadow: 0 12px 36px rgba(0, 150, 255, 0.6);
+      transform: translateY(-6px);
+    }
+
+    .image-block img {
+      width: 100%;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      cursor: zoom-in;
+      box-shadow: 0 4px 16px rgba(0, 100, 255, 0.3);
+      transition: filter 0.3s ease;
+    }
+
+    .image-block img:hover {
+      filter: brightness(1.1);
+    }
+
+    .caption-input {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 15px;
+      min-height: 90px;
+      resize: vertical;
+      background: rgba(255, 255, 255, 0.1);
+      color: #dbe9ff;
+      box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.12);
+      transition: border-color 0.3s ease;
+    }
+
+    .caption-input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 14px #00d4ff;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .remove-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(255, 90, 90, 0.95);
+      border: none;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 50px;
+      font-size: 25px;      /* เพิ่มขนาดตัวหนังสือ */
+      min-width: 60px;      /* กำหนดความกว้างขั้นต่ำ */
+      border-radius: 8px;   /* ปรับมุมให้ดูนุ่มนวลขึ้น */
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 0 8px rgba(255, 50, 50, 0.8);
+      transition: background 0.25s ease;
+    }
+
+    .remove-btn:hover {
+      background: rgba(255, 50, 50, 1);
+    }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 10, 30, 0.95);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .lightbox-img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 180, 255, 0.9);
+      transition: transform 0.3s ease;
+    }
+
+    .close-btn {
+      position: fixed;
+      top: 30px;
+      right: 40px;
+      color: #00d4ff;
+      font-size: 42px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10000;
+      text-shadow: 0 0 12px #00d4ff;
+    }
+
+    .close-btn:hover {
+      color: #1bf;
+      text-shadow: 0 0 20px #00d4ff;
+    }
+
+    /* .project-input-group {
+      position: sticky;
+      top: 0;
+      background: none;
+      z-index: 10;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid none;
+    }
+
+    .project-input-group input {
+      margin-bottom: 6px;
+    }
+
+    .sidebar h3 {
+      margin-top: 10px;
+    } */
+  </style>
+</head>
+
+<body>
+  <!-- <div class="sidebar">
+    <h3>โปรเจคของคุณ</h3>
+    <input type="text" id="newProjectName" placeholder="ชื่อโปรเจคใหม่">
+    <button onclick="createProject()">➕ สร้างโปรเจค</button>
+    <div id="projectList"></div>
+  </div> -->
+  <div class="sidebar">
+    <div class="project-input-group">
+      <input type="text" id="newProjectName" placeholder="ชื่อโปรเจคใหม่">
+      <button onclick="createProject()">➕ สร้างโปรเจค</button>
+    </div>
+    <h3>โปรเจคของคุณ</h3>
+    <div id="projectList"></div>
+  </div>
+
+
+  <div class="main" id="mainContent" style="display: none;">
+    <h2 id="currentProjectTitle">กรุณาเลือกโปรเจค</h2>
+    <div class="actions">
+      <button onclick="document.getElementById('imageInput').click()">+ เพิ่มรูปภาพ</button>
+      <button onclick="saveAll()">💾 บันทึกทั้งหมด</button>
+      <button onclick="removeAllImages()">🗑️ ลบรูปทั้งหมด</button>
+    </div>
+    <textarea id="projectDescription" class="caption-input" placeholder="คำอธิบายรวมของรูปภาพ..."
+      style="margin-bottom: 20px; min-height: 150px; max-height: 300px; resize: vertical; width: 100%; max-width: 600px;"></textarea>
+
+
+    <input type="file" id="imageInput" accept="image/*" multiple style="display:none" />
+    <div class="gallery" id="gallery"></div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" style="display:none;">
+    <span class="close-btn">&times;</span>
+    <img class="lightbox-img" src="" alt="รูปขนาดใหญ่">
+  </div>
+
+  <script>
+    let projects = JSON.parse(localStorage.getItem('projects')) || {};
+    let currentProject = null;
+
+    const gallery = document.getElementById('gallery');
+    const projectList = document.getElementById('projectList');
+    const currentProjectTitle = document.getElementById('currentProjectTitle');
+    const projectDescription = document.getElementById('projectDescription');
+
+    function renderProjects() {
+      projectList.innerHTML = '';
+      for (const name in projects) {
+        const container = document.createElement('div');
+        container.className = 'project-item';
+        container.style.display = 'flex';
+        container.style.justifyContent = 'space-between';
+        container.style.alignItems = 'center';
+        container.style.gap = '10px';
+
+        // เอา event listener ไว้ที่ container เลย
+        container.onclick = () => loadProject(name);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.style.flex = '1';
+        nameSpan.style.cursor = 'pointer';
+        // ลบ onclick ของ nameSpan ออก (ไม่ต้องมี เพราะ container คลิกได้ทั้งหมด)
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'ลบ';
+        deleteBtn.style.background = 'rgba(255, 50, 50, 0.9)';
+        deleteBtn.style.color = 'white';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.borderRadius = '6px';
+        deleteBtn.style.padding = '4px 10px';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation(); // ป้องกันไม่ให้ container รับ event คลิกด้วย
+          if (confirm(`คุณต้องการลบโปรเจค "${name}" หรือไม่?`)) {
+            delete projects[name];
+            if (currentProject === name) {
+              currentProject = null;
+              currentProjectTitle.textContent = 'กรุณาเลือกโปรเจค';
+              gallery.innerHTML = '';
+              document.getElementById('mainContent').style.display = 'none';
+            }
+
+            saveAll();
+            renderProjects();
+          }
+        };
+
+        container.appendChild(nameSpan);
+        container.appendChild(deleteBtn);
+        projectList.appendChild(container);
+      }
+    }
+
+
+    function createProject() {
+      const name = document.getElementById('newProjectName').value.trim();
+      if (name && !projects[name]) {
+        projects[name] = { description: '', images: [] };
+        saveProjectsToStorage();
+        renderProjects();
+        loadProject(name);
+        document.getElementById('newProjectName').value = '';
+      } else {
+        alert('กรุณากรอกชื่อโปรเจค หรือโปรเจคนี้มีอยู่แล้ว');
+      }
+    }
+
+    function loadProject(name) {
+      currentProject = name;
+      currentProjectTitle.textContent = name;
+      document.getElementById('mainContent').style.display = 'block';
+
+      // โหลดคำอธิบาย
+      projectDescription.value = projects[currentProject].description || '';
+
+      renderGallery();
+    }
+
+    function renderGallery() {
+      gallery.innerHTML = '';
+      if (!currentProject || !projects[currentProject]) return;
+
+      projects[currentProject].images.forEach((item, index) => {
+        const block = document.createElement('div');
+        block.className = 'image-block';
+
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.onclick = () => openLightbox(item.src);
+
+        const caption = document.createElement('textarea');
+        caption.className = 'caption-input';
+        caption.value = item.caption || '';
+        caption.oninput = () => {
+          projects[currentProject].images[index].caption = caption.value;
+          saveProjectsToStorage();
+        };
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = 'ลบ';
+        removeBtn.onclick = () => {
+          projects[currentProject].images.splice(index, 1);
+          renderGallery();
+          saveProjectsToStorage();
+        };
+
+        block.appendChild(img);
+        block.appendChild(caption);
+        block.appendChild(removeBtn);
+        gallery.appendChild(block);
+      });
+    }
+
+    document.getElementById('imageInput').addEventListener('change', async function (event) {
+      if (!currentProject || !projects[currentProject]) {
+        alert("\u274c กรุณาเลือกโปรเจคก่อนอัปโหลดรูปภาพ");
+        return;
+      }
+
+      const files = Array.from(event.target.files);
+      for (const file of files) {
+        let imgSrc = '';
+        if (file.name.toLowerCase().endsWith('.heic')) {
+          try {
+            const converted = await heic2any({ blob: file, toType: 'image/jpeg' });
+            imgSrc = URL.createObjectURL(converted);
+          } catch (e) {
+            alert(`ไม่สามารถแปลง HEIC: ${file.name}`);
+            continue;
+          }
+        } else {
+          imgSrc = await readAsDataURL(file);
+        }
+        projects[currentProject].images.push({ src: imgSrc, caption: '' });
+      }
+
+      renderGallery();
+      saveProjectsToStorage();
+    });
+
+    function readAsDataURL(file) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // บันทึกข้อมูลทั้งหมดลง localStorage
+    function saveProjectsToStorage() {
+      localStorage.setItem('projects', JSON.stringify(projects));
+    }
+
+    // บันทึกและแจ้งเตือน
+    function saveAll() {
+      if (currentProject && projects[currentProject]) {
+        projects[currentProject].description = projectDescription.value;
+      }
+      saveProjectsToStorage();
+      alert('✅ บันทึกข้อมูลเรียบร้อย');
+    }
+
+    function removeAllImages() {
+      if (!currentProject || !projects[currentProject]) {
+        alert("\u274c กรุณาเลือกโปรเจคก่อนลบรูป");
+        return;
+      }
+
+      const confirmDelete = confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรูปทั้งหมดในโปรเจคนี้?");
+      if (confirmDelete) {
+        projects[currentProject].images = [];
+        renderGallery();
+        saveProjectsToStorage();
+        alert("🗑️ ลบรูปทั้งหมดเรียบร้อยแล้ว");
+      }
+    }
+
+    // อัพเดตคำอธิบายทันทีเมื่อพิมพ์
+    projectDescription.oninput = () => {
+      if (currentProject && projects[currentProject]) {
+        projects[currentProject].description = projectDescription.value;
+        saveProjectsToStorage();
+      }
+    };
+
+    // Lightbox functions
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.querySelector('.lightbox-img');
+    const closeBtn = document.querySelector('.close-btn');
+
+    function openLightbox(src) {
+      lightboxImg.src = src;
+      lightbox.style.display = 'flex';
+    }
+
+    function closeLightbox() {
+      lightbox.style.display = 'none';
+      lightboxImg.src = '';
+    }
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', e => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    renderProjects();
+  </script>
+</body>
+
+</html>
